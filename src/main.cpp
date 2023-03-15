@@ -13,7 +13,7 @@
 #include <learnopengl/shader.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
-//ergergregerwg
+
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -29,6 +29,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+bool spotlightOn = true;
 
 // camera
 
@@ -53,11 +54,15 @@ struct PointLight {
 
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
+    glm::vec3 dirLightDir = glm::vec3(-0.2f, -1.0f, -0.3f);
+    glm::vec3 dirLightAmbDiffSpec = glm::vec3(0.3f, 0.3f,0.2f);
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 backpackPosition = glm::vec3(0.0f);
-    float backpackScale = 1.0f;
+    glm::vec3 vecCal = glm::vec3(0.0f); //Ovo je pomocna promenljiva za fino podesavanje objekata
+    glm::vec3 vecRot = glm::vec3(0.0f);//Ovo je pomocna promenljiva za fino podesavanje objekata
+    float fineCal = 0.001f;//Ovo je pomocna promenljiva za fino podesavanje objekata
+
     PointLight pointLight;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
@@ -136,8 +141,8 @@ int main() {
         return -1;
     }
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+    // okrece teksture po y osi
+    stbi_set_flip_vertically_on_load(false);
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
@@ -160,13 +165,14 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // build and compile shaders
-    // -------------------------
+    // ================================================================PODESAVANJE SEJDERA=================================================
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
 
     // load models
-    // -----------
-    Model ourModel("resources/objects/backpack/backpack.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    // ================================================================UCITAVANJE MODELA=================================================
+    //sobe
+    Model roomsModel("resources/objects/rooms/model.obj");
+    roomsModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
@@ -204,6 +210,16 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
+        // view/projection transformations
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = programState->camera.GetViewMatrix();
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
+
+        ourShader.setVec3("viewPosition", programState->camera.Position);
+        ourShader.setFloat("material.shininess", 32.0f);
+
         pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
         ourShader.setVec3("pointLight.position", pointLight.position);
         ourShader.setVec3("pointLight.ambient", pointLight.ambient);
@@ -214,26 +230,58 @@ int main() {
         ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
+
+        // spotLight
+        //___________________________________________________________________________________________________
+        if (spotlightOn) {
+            ourShader.setVec3("spotLight.position", programState->camera.Position);
+            ourShader.setVec3("spotLight.direction", programState->camera.Front);
+            ourShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+            ourShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+            ourShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+            ourShader.setFloat("spotLight.constant", 1.0f);
+            ourShader.setFloat("spotLight.linear", 0.09);
+            ourShader.setFloat("spotLight.quadratic", 0.032);
+            ourShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+            ourShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+        }else{
+            ourShader.setVec3("spotLight.diffuse", 0.0f, 0.0f, 0.0f);
+            ourShader.setVec3("spotLight.specular", 0.0f, 0.0f, 0.0f);
+        }
 
         // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        //==================================================================RENDEROVANJE MODELA===========================================
+        //render obj
+//        glm::mat4 model = glm::mat4(1.0f);
+//        model = glm::translate(modelBox,programState->vecCal);
+//        model = glm::scale(modelBox, glm::vec3(programState->fineCal));
+//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.x), glm::vec3(1.0f ,0.0f, 0.0f));
+//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.y), glm::vec3(0.0f ,1.0f, 0.0f));
+//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.z), glm::vec3(0.0f ,0.0f, 1.0f));
+//        ourShader.setMat4("model", model);
+//        objModel.Draw(ourShader);
+        //---------------------------------------------------------------------------------
+        //iscrtavanje sobe
+//        glm::mat4 modelRooms = glm::mat4(1.0f);
+//        modelRooms = glm::translate(modelRooms,
+//                               programState->backpackPosition); // translate it down so it's at the center of the scene
+//        modelRooms = glm::scale(modelRooms, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+//        ourShader.setMat4("model", modelRooms);
+//        roomsModel.Draw(ourShader);
+
+        glm::mat4 modelRooms = glm::mat4(1.0f);
+        modelRooms = glm::translate(modelRooms,programState->vecCal);
+        modelRooms = glm::scale(modelRooms, glm::vec3(programState->fineCal));
+        modelRooms = glm::rotate(modelRooms,glm::radians(programState->vecRot.x), glm::vec3(1.0f ,0.0f, 0.0f));
+        modelRooms = glm::rotate(modelRooms,glm::radians(programState->vecRot.y), glm::vec3(0.0f ,1.0f, 0.0f));
+        modelRooms = glm::rotate(modelRooms,glm::radians(programState->vecRot.z), glm::vec3(0.0f ,0.0f, 1.0f));
+        ourShader.setMat4("model", modelRooms);
+        roomsModel.Draw(ourShader);
+
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
-
-
-
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
@@ -308,26 +356,25 @@ void DrawImGui(ProgramState *programState) {
 
     {
         static float f = 0.0f;
-        ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
+        ImGui::Begin("Settings");
+        ImGui::Text("Point light settings:");
 
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
-        ImGui::End();
-    }
+        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.005, 0.0001, 1.0);
+        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.005, 0.0001, 1.0);
+        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.005, 0.0001, 1.0);
 
-    {
-        ImGui::Begin("Camera info");
-        const Camera& c = programState->camera;
-        ImGui::Text("Camera position: (%f, %f, %f)", c.Position.x, c.Position.y, c.Position.z);
-        ImGui::Text("(Yaw, Pitch): (%f, %f)", c.Yaw, c.Pitch);
-        ImGui::Text("Camera front: (%f, %f, %f)", c.Front.x, c.Front.y, c.Front.z);
-        ImGui::Checkbox("Camera mouse update", &programState->CameraMouseMovementUpdateEnabled);
+        ImGui::Text("Fine translate");
+        ImGui::DragFloat3("translate", (float*)&programState->vecCal, 0.05, -300.0, 300.0);
+        ImGui::Text("Fine rotate");
+        ImGui::DragFloat3("Rotate", (float*)&programState->vecRot, 0.05, -181.0, 181.0);
+        ImGui::DragFloat("scale", &programState->fineCal, 0.05, 0.00000001, 100.0);
+
+        ImGui::Text("DirLight settings");
+        ImGui::DragFloat3("Direction light direction", (float*)&programState->dirLightDir, 0.05, -20.0, 20.0);
+
+        ImGui::Text("Ambient    Diffuse    Specular");
+        ImGui::DragFloat3("Direction light settings", (float*)&programState->dirLightAmbDiffSpec, 0.05, 0.001, 1.0);
+
         ImGui::End();
     }
 
@@ -343,6 +390,13 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+    }
+    if (key == GLFW_KEY_F && action == GLFW_PRESS){
+        if(spotlightOn){
+            spotlightOn = false;
+        }else{
+            spotlightOn = true;
         }
     }
 }
