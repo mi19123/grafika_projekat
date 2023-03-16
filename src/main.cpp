@@ -193,6 +193,19 @@ int main() {
     //sobe
     Model roomsModel("resources/objects/rooms/model.obj");
     roomsModel.SetShaderTextureNamePrefix("material.");
+    //skulptura
+    Model skModel("resources/objects/skulptura/Colossal_Bust_Rameses_II.obj");
+    skModel.SetShaderTextureNamePrefix("material.");
+    //grave
+    Model graveModel("resources/objects/grave/churchyard_grave_20k_edit.obj");
+    graveModel.SetShaderTextureNamePrefix("material.");
+    //pecurka
+    Model pecurkaModel("resources/objects/pecurka/mushroom-2.obj");
+    pecurkaModel.SetShaderTextureNamePrefix("material.");
+    //light
+    Model lightModel("resources/objects/ball/ball.obj");
+    lightModel.SetShaderTextureNamePrefix("material.");
+
 
     // ============================================BLOOM================================================================
     // config framebuffers
@@ -353,6 +366,7 @@ int main() {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+        float time = currentFrame;
 
         // input
         // -----
@@ -386,7 +400,7 @@ int main() {
         ourShader.setVec3("dirLight.diffuse", glm::vec3(programState->dirLightAmbDiffSpec.y));
         ourShader.setVec3("dirLight.specular", glm::vec3(programState->dirLightAmbDiffSpec.z));
         //=============================pointlight 1=========================================================================
-        ourShader.setVec3("pointLights[0].position", glm::vec3(-0.8f ,0.05f, 2.7f));
+        ourShader.setVec3("pointLights[0].position", glm::vec3(-1.75f ,sin(time)*0.3f+0.6f, 0.9f));
         ourShader.setVec3("pointLights[0].ambient", pointLight.ambient);
         ourShader.setVec3("pointLights[0].diffuse", pointLight.diffuse);
         ourShader.setVec3("pointLights[0].specular", pointLight.specular);
@@ -430,20 +444,43 @@ int main() {
 //        ourShader.setMat4("model", model);
 //        objModel.Draw(ourShader);
         //---------------------------------------------------------------------------------
-        //iscrtavanje sobe
-//        glm::mat4 modelRooms = glm::mat4(1.0f);
-//        modelRooms = glm::translate(modelRooms,
-//                               programState->backpackPosition); // translate it down so it's at the center of the scene
-//        modelRooms = glm::scale(modelRooms, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-//        ourShader.setMat4("model", modelRooms);
-//        roomsModel.Draw(ourShader);
-
+        //render sobe
         glm::mat4 modelRooms = glm::mat4(1.0f);
         modelRooms = glm::translate(modelRooms,glm::vec3(0.0f,-0.5f,0.0f));
         modelRooms = glm::scale(modelRooms, glm::vec3(0.25f));
         ourShader.setMat4("model", modelRooms);
         roomsModel.Draw(ourShader);
-
+        //render skulptura
+        glm::mat4 modelSk = glm::mat4(1.0f);
+        modelSk = glm::translate(modelSk,glm::vec3(0.5f,-0.7f,2.15f));
+        modelSk = glm::scale(modelSk, glm::vec3(1.1));
+        modelSk = glm::rotate(modelSk,glm::radians(-90.0f), glm::vec3(1.0f ,0.0f, 0.0f));
+        modelSk = glm::rotate(modelSk,glm::radians(60.0f), glm::vec3(0.0f ,0.0f, 1.0f));
+        ourShader.setMat4("model", modelSk);
+        skModel.Draw(ourShader);
+        //render grave
+        glm::mat4 modelGrave = glm::mat4(1.0f);
+        modelGrave = glm::translate(modelGrave,glm::vec3(4.5f,-0.45f,1.15f));
+        modelGrave = glm::scale(modelGrave, glm::vec3(0.25f));
+        modelGrave = glm::rotate(modelGrave,glm::radians(-105.0f), glm::vec3(0.0f ,1.0f, 0.0f));
+        ourShader.setMat4("model", modelGrave);
+        graveModel.Draw(ourShader);
+        //render pecurka
+        glm::mat4 modelPecurka = glm::mat4(1.0f);
+        modelPecurka = glm::translate(modelPecurka,glm::vec3(-1.65f,-0.35f,0.95f));
+        modelPecurka = glm::scale(modelPecurka, glm::vec3(0.1));
+        modelPecurka = glm::rotate(modelPecurka,glm::radians(-45.0f), glm::vec3(0.0f ,1.0f, 0.0f));
+        ourShader.setMat4("model", modelPecurka);
+        pecurkaModel.Draw(ourShader);
+        //render light
+        glm::mat4 modelLight = glm::mat4(1.0f);
+        modelLight = glm::translate(modelLight,glm::vec3(-1.75f ,sin(time)*0.3f+0.6f, 0.9f));
+        modelLight = glm::scale(modelLight, glm::vec3(0.095));
+        modelLight = glm::rotate(modelLight,glm::radians(time*60.0f), glm::vec3(1.0f ,0.0f, 0.0f));
+        modelLight = glm::rotate(modelLight,glm::radians(time*80.0f), glm::vec3(0.0f ,1.0f, 0.0f));
+        modelLight = glm::rotate(modelLight,glm::radians(time*100.0f), glm::vec3(0.0f ,0.0f, 1.0f));
+        ourShader.setMat4("model", modelLight);
+        lightModel.Draw(ourShader);
 
         //==================================CRTANJE SKYBOXA=============================================================
         glDepthFunc(GL_LEQUAL);
