@@ -167,8 +167,12 @@ int main() {
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
     // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
+
+    //Face cull
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
 
     // build and compile shaders
     // ================================================================PODESAVANJE SEJDERA=================================================
