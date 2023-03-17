@@ -60,16 +60,14 @@ void main()
 {
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPosition - FragPos);
-
     //dirlight
     vec3 result = CalcDirLight(dirLight, norm, viewDir);
-    //pointlights
+    //pointlight
     for(int i = 0; i < NR_POINT_LIGHTS; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
     //spotlight
     result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
-
-// proveravamo granicu za bloom
+    // proveravamo granicu za bloom
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
     if(brightness > 0.9)
         BrightColor = vec4(result, 1.0);
@@ -77,7 +75,6 @@ void main()
         BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
     FragColor = vec4(result, 1.0);
 }
-
 // dirlight f-ja
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
 {
@@ -94,7 +91,6 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 specular = light.specular * spec * vec3(texture(material.specular, TexCoords));
     return (ambient + diffuse + specular);
 }
-
 // pointlight f-ja
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
@@ -117,7 +113,6 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     specular *= attenuation;
     return (ambient + diffuse + specular);
 }
-
 // flashlight f-ja
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 {

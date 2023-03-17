@@ -30,7 +30,6 @@ unsigned int loadCubemap(vector<std::string> faces);
 
 void renderQuad();
 
-
 // settings
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
@@ -39,11 +38,9 @@ bool bloom = true;
 bool bloomKeyPressed = false;
 float exposure = 1.0f;
 // camera
-
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
-
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -66,9 +63,6 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 vecCal = glm::vec3(0.0f); //Ovo je pomocna promenljiva za fino podesavanje objekata
-    glm::vec3 vecRot = glm::vec3(0.0f);//Ovo je pomocna promenljiva za fino podesavanje objekata
-    float fineCal = 0.001f;//Ovo je pomocna promenljiva za fino podesavanje objekata
 
     vector<std::string> faces;
     unsigned int cubemapTexture;
@@ -151,8 +145,7 @@ int main() {
         return -1;
     }
 
-    // okrece teksture po y osi
-    stbi_set_flip_vertically_on_load(false);
+    stbi_set_flip_vertically_on_load(false);// okrece teksture po y osi
 
     programState = new ProgramState;
     programState->LoadFromFile("resources/program_state.txt");
@@ -165,21 +158,20 @@ int main() {
     ImGuiIO &io = ImGui::GetIO();
     (void) io;
 
-
-
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
     // configure global opengl state
     glEnable(GL_DEPTH_TEST);
-
     //Face cull
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
     glFrontFace(GL_CW);
+    //blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // build and compile shaders
-    // ================================================================PODESAVANJE SEJDERA=================================================
+    // =================================================PRAVLJENJE I UCITAVANJE SEJDERA=================================================
     //glavni shaderi
     Shader ourShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
     //shaderi za nebo
@@ -187,8 +179,9 @@ int main() {
     //shaderi za bloom
     Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.fs");
     Shader bloomFinalShader("resources/shaders/bloom_final.vs", "resources/shaders/bloom_final.fs");
+    //shader za providnost
+    Shader transparentShader("resources/shaders/2.model_lighting.vs", "resources/shaders/transparent.fs");
 
-    // load models
     // ================================================================UCITAVANJE MODELA=================================================
     //sobe
     Model roomsModel("resources/objects/rooms/model.obj");
@@ -262,7 +255,7 @@ int main() {
             std::cout << "Framebuffer not complete!" << std::endl;
     }
 
-    // ==========================================================SKYBOX=================================================
+    // ================================================SKYBOX===========================================================
     //Seting skybox vertices
     float skyboxVertices[] = {
             // positions
@@ -309,8 +302,7 @@ int main() {
             1.0f, -1.0f,  1.0f
     };
 
-    // skybox VAO
-    //_______________________________________________________________________________________________
+    //___________________________________________skybox VAO____________________________________________________
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
@@ -320,8 +312,7 @@ int main() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-    // load textures for skybox
-    // ______________________________________________________________________________________________
+    //========================================load textures for skybox===================================================
     programState->faces =
             {
                     FileSystem::getPath("resources/textures/skybox/right.jpg"),
@@ -337,7 +328,7 @@ int main() {
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
 
-    //-----------------------------------------------point light--------------------------------------------------------
+    //==============================================point light=========================================================
     PointLight& pointLight = programState->pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
     pointLight.ambient = glm::vec3(0.1, 0.1, 0.1);
@@ -348,8 +339,7 @@ int main() {
     pointLight.linear = 0.8f;
     pointLight.quadratic = 0.4f;
 
-// shader configuration
-    // _______________________________________________________________________________________________
+    // =========================Podesavanje shadera=====================================================================
     ourShader.use();
     ourShader.setInt("diffuseTexture", 0);
     blurShader.use();
@@ -408,7 +398,7 @@ int main() {
         ourShader.setFloat("pointLights[0].linear", pointLight.linear);
         ourShader.setFloat("pointLights[0].quadratic", pointLight.quadratic);
         //=============================pointlight 2=========================================================================
-        ourShader.setVec3("pointLights[1].position", glm::vec3(-1.2f ,0.3f, -0.05f));
+        ourShader.setVec3("pointLights[1].position", glm::vec3(4.35f ,sin(time)*0.2f+0.6f, 1.1f));
         ourShader.setVec3("pointLights[1].ambient", pointLight.ambient);
         ourShader.setVec3("pointLights[1].diffuse", pointLight.diffuse);
         ourShader.setVec3("pointLights[1].specular", pointLight.specular);
@@ -432,18 +422,7 @@ int main() {
             ourShader.setVec3("spotLight.specular", 0.0f, 0.0f, 0.0f);
         }
 
-        // render the loaded model
         //==================================================================RENDEROVANJE MODELA===========================================
-        //render obj
-//        glm::mat4 model = glm::mat4(1.0f);
-//        model = glm::translate(modelBox,programState->vecCal);
-//        model = glm::scale(modelBox, glm::vec3(programState->fineCal));
-//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.x), glm::vec3(1.0f ,0.0f, 0.0f));
-//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.y), glm::vec3(0.0f ,1.0f, 0.0f));
-//        model = glm::rotate(modelBox,glm::radians(programState->vecRot.z), glm::vec3(0.0f ,0.0f, 1.0f));
-//        ourShader.setMat4("model", model);
-//        objModel.Draw(ourShader);
-        //---------------------------------------------------------------------------------
         //render sobe
         glm::mat4 modelRooms = glm::mat4(1.0f);
         modelRooms = glm::translate(modelRooms,glm::vec3(0.0f,-0.5f,0.0f));
@@ -472,13 +451,48 @@ int main() {
         modelPecurka = glm::rotate(modelPecurka,glm::radians(-45.0f), glm::vec3(0.0f ,1.0f, 0.0f));
         ourShader.setMat4("model", modelPecurka);
         pecurkaModel.Draw(ourShader);
-        //render light
+        
+        //Podesavamo shader za providnost, moramo da imamo svetla koja zalimo da uticu na providne objekte
+        transparentShader.use();
+        transparentShader.setMat4("projection", projection);
+        transparentShader.setMat4("view", view);
+        transparentShader.setVec3("viewPosition", programState->camera.Position);
+        transparentShader.setFloat("material.shininess", 32.0f);
+        //=============================dirlight=========================================================================
+        transparentShader.setVec3("dirLight.direction", programState->dirLightDir);
+        transparentShader.setVec3("dirLight.ambient", glm::vec3(programState->dirLightAmbDiffSpec.x));
+        transparentShader.setVec3("dirLight.diffuse", glm::vec3(programState->dirLightAmbDiffSpec.y));
+        transparentShader.setVec3("dirLight.specular", glm::vec3(programState->dirLightAmbDiffSpec.z));
+        //=============================pointlight 1=========================================================================
+        transparentShader.setVec3("pointLights[0].position", glm::vec3(-1.75f ,sin(time)*0.3f+0.6f, 0.9f));
+        transparentShader.setVec3("pointLights[0].ambient", pointLight.ambient);
+        transparentShader.setVec3("pointLights[0].diffuse", pointLight.diffuse);
+        transparentShader.setVec3("pointLights[0].specular", pointLight.specular);
+        transparentShader.setFloat("pointLights[0].constant", pointLight.constant);
+        transparentShader.setFloat("pointLights[0].linear", pointLight.linear);
+        transparentShader.setFloat("pointLights[0].quadratic", pointLight.quadratic);
+        //=============================pointlight 2=========================================================================
+        transparentShader.setVec3("pointLights[1].position", glm::vec3(4.35f ,sin(time)*0.2f+0.6f, 1.1f));
+        transparentShader.setVec3("pointLights[1].ambient", pointLight.ambient);
+        transparentShader.setVec3("pointLights[1].diffuse", pointLight.diffuse);
+        transparentShader.setVec3("pointLights[1].specular", pointLight.specular);
+        transparentShader.setFloat("pointLights[1].constant", pointLight.constant);
+        transparentShader.setFloat("pointLights[1].linear", pointLight.linear);
+        transparentShader.setFloat("pointLights[1].quadratic", pointLight.quadratic);
+        
+        //render light ball 1
         glm::mat4 modelLight = glm::mat4(1.0f);
         modelLight = glm::translate(modelLight,glm::vec3(-1.75f ,sin(time)*0.3f+0.6f, 0.9f));
         modelLight = glm::scale(modelLight, glm::vec3(0.095));
         modelLight = glm::rotate(modelLight,glm::radians(time*60.0f), glm::vec3(1.0f ,0.0f, 0.0f));
         modelLight = glm::rotate(modelLight,glm::radians(time*80.0f), glm::vec3(0.0f ,1.0f, 0.0f));
         modelLight = glm::rotate(modelLight,glm::radians(time*100.0f), glm::vec3(0.0f ,0.0f, 1.0f));
+        ourShader.setMat4("model", modelLight);
+        lightModel.Draw(ourShader);
+        //render light ball 2
+        modelLight = glm::mat4(1.0f);
+        modelLight = glm::translate(modelLight,glm::vec3(4.35f ,sin(time)*0.2f+0.6f, 1.1f));
+        modelLight = glm::scale(modelLight, glm::vec3(0.05f));
         ourShader.setMat4("model", modelLight);
         lightModel.Draw(ourShader);
 
@@ -639,18 +653,6 @@ void DrawImGui(ProgramState *programState) {
         ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.005, 0.0001, 1.0);
         ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.005, 0.0001, 1.0);
         ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.005, 0.0001, 1.0);
-
-        ImGui::Text("Fine translate");
-        ImGui::DragFloat3("translate", (float*)&programState->vecCal, 0.05, -300.0, 300.0);
-        ImGui::Text("Fine rotate");
-        ImGui::DragFloat3("Rotate", (float*)&programState->vecRot, 0.05, -181.0, 181.0);
-        ImGui::DragFloat("scale", &programState->fineCal, 0.05, 0.00000001, 100.0);
-
-        ImGui::Text("DirLight settings");
-        ImGui::DragFloat3("Direction light direction", (float*)&programState->dirLightDir, 0.05, -20.0, 20.0);
-
-        ImGui::Text("Ambient    Diffuse    Specular");
-        ImGui::DragFloat3("Direction light settings", (float*)&programState->dirLightAmbDiffSpec, 0.05, 0.001, 1.0);
 
         ImGui::End();
     }
