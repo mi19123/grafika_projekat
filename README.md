@@ -31,5 +31,16 @@ U projektu su implementirane oblasti koje su rađene na vežbama.
 - [x] HDR
 - [x] Bloom
 
+# [Video](./galerija/3.png)
+# Slike
+![Slika1](./galerija/1.png)
+![Slika1](./galerija/2.png)
+![Slika1](./galerija/4.png)
+![Slika1](./galerija/5.png)
+![Slika1](./galerija/6.png)
+![Slika1](./galerija/7.png)
+![Slika1](./galerija/8.png)
+
+
 Kristina Savković
 mi19123
