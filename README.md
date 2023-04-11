@@ -31,7 +31,7 @@ U projektu su implementirane oblasti koje su rađene na vežbama.
 - [x] HDR
 - [x] Bloom
 
-# [Video](./galerija/3.png)
+# [Video](./galerija/3.mkv)
 # Slike
 ![Slika1](./galerija/1.png)
 ![Slika1](./galerija/2.png)
